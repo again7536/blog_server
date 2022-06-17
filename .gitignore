@@ -104,5 +104,6 @@ dist
 .tern-port
 db
 dist
-uploads
+uploads/**
+!uploads/.gitkeep
 *.env
