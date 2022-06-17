@@ -105,3 +105,4 @@ dist
 db
 dist
 uploads
+*.env

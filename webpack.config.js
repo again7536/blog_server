@@ -40,6 +40,11 @@ module.exports = (env, argv) => {
         },
       ],
     },
-    plugins: [new NodemonPlugin(), new Dotenv()],
+    plugins: [
+      new NodemonPlugin(),
+      new Dotenv({
+        path: process.env.NODE_ENV === 'production' ? '.prod.env' : '.dev.env',
+      }),
+    ],
   };
 };
