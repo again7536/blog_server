@@ -48,8 +48,9 @@ router
         const id: [{ seq: number }] = await db.all(
           'SELECT * FROM SQLITE_SEQUENCE'
         );
+        const seq = id[0].seq ?? 0;
 
-        const basePath = 'uploads/' + (id[0].seq + 1);
+        const basePath = 'uploads/' + (seq + 1);
         fs.mkdirSync(basePath);
         const form = formidable({
           uploadDir: basePath,
