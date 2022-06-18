@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 const app = express();
 const port = 5000;
 
-app.use(express.static('uploads'));
+app.use('/static', express.static('uploads'));
 app.use(cookieParser());
 
 app.use('/posts', posts);
