@@ -20,7 +20,7 @@ router
       const rows = await db.all(`SELECT * FROM posts WHERE id=${id}`);
 
       const markdown = fs.readFileSync(rows[0].fileUrl).toString();
-      db.close();
+      await db.close();
       res.status(200).json({ markdown });
     } catch (err) {
       console.error(err);
@@ -80,7 +80,7 @@ router
         SET title='${title}', imgUrl='${imgUrl}', summary='${summary}', fileUrl='${fileUrl}') 
         WHERE id=${id}`
         );
-        db.close();
+        await db.close();
         res.status(200).json(result);
       } catch (err) {
         console.error(err);
