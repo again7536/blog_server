@@ -1,13 +1,14 @@
 import express from 'express';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
-import formidable from 'formidable';
-import fs from 'fs';
 import idRoute from './post';
 import passport from 'lib/auth';
+import fs from 'fs';
+import { extractSummary, extractTitle } from 'lib/extract';
 
 const router = express.Router();
 router
+  .use(passport.initialize())
   .get('/count', async (req, res, next) => {
     try {
       // Open DB
@@ -28,10 +29,6 @@ router
       res.status(500).end();
     }
   })
-
-  .use('/:id', idRoute)
-  .use(passport.initialize())
-
   .get('/', async (req, res, next) => {
     try {
       const { limit, offset } = req.query;
@@ -84,45 +81,30 @@ router
         const seq = id[0]?.seq ?? 0;
 
         // Upload files
-        const basePath = 'uploads/' + (seq + 1);
-        fs.mkdirSync(basePath);
-        const form = formidable({
-          uploadDir: basePath,
-          filter: function ({ name }) {
-            return (
-              !!name && (name.includes('img') || name.includes('markdown'))
-            );
-          },
-          filename: function (name, ext, part, form) {
-            return `${new Date().getTime()}-${part.originalFilename}`;
-          },
-        });
+        let imgUrl = null;
+        const uploadPath = 'uploads/' + (seq + 1);
+        if (fs.existsSync(uploadPath)) {
+          const images = fs.readdirSync(uploadPath);
+          imgUrl = uploadPath + '/' + images[0];
+        }
 
-        // resolve parsing with Promise
-        const [fields, files] = await new Promise((resolve, reject) => {
-          form.parse(req, (err, fields, files) => {
-            if (err) {
-              reject(err);
-            }
-            resolve([fields, files]);
-          });
-        });
-
-        const { title, summary } = fields;
-        const imgUrl = basePath + '/' + files.img.newFilename;
-        const fileUrl = basePath + '/' + files.markdown.newFilename;
+        const { markdown, published } = req.body;
+        const title = extractTitle(markdown, 50);
+        const summary = extractSummary(markdown, 150);
 
         const result = await db.all(
-          `INSERT INTO posts (title, imgUrl, summary, fileUrl) VALUES ('${title}', '${imgUrl}', '${summary}', '${fileUrl}')`
+          `INSERT INTO posts (title, summary, markdown, published, imgUrl) 
+          VALUES ('${title}', '${summary}', '${markdown}', ${published}, '${imgUrl}')`
         );
         await db.close();
 
-        res.status(200).json(result);
+        res.status(200).json(id);
       } catch (err) {
         console.error(err);
         res.status(500).end();
       }
     }
-  );
+  )
+  .use('/:id', idRoute);
 
 export default router;
