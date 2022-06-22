@@ -1,10 +1,9 @@
 import express from 'express';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
-import fs from 'fs';
-import path from 'path';
 import passport from 'lib/auth';
 import multer from 'multer';
+import { createDir } from 'lib/path-utils';
 
 const storage = multer.diskStorage({
   async destination(req, file, cb) {
@@ -13,16 +12,12 @@ const storage = multer.diskStorage({
       filename: 'db/blog.db',
       driver: sqlite3.Database,
     });
-    // Get Highest Sequence from DB
-    const id: [{ seq: number }] = await db.all('SELECT * FROM SQLITE_SEQUENCE');
-    const seq = id[0]?.seq ?? 0;
 
-    // Upload files
-    const uploadPath = 'uploads/' + (seq + 1);
-    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
+    let id = req.query.id ? +req.query.id : null;
+    const { absolutePath, relativePath } = await createDir(db, id);
+
     await db.close();
-
-    cb(null, uploadPath);
+    cb(null, relativePath);
   },
   filename(req, file, cb) {
     cb(null, `${Date.now()}-${file.originalname}`);
