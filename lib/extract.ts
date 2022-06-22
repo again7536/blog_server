@@ -1,40 +1,70 @@
-// Copyright 2017 - 2017, dominictarr and the markdown-summary contributors
-// SPDX-License-Identifier: MIT
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
+import fs from 'fs';
+import path from 'path';
 
-// Modified : 2022.06.20 again7536
+interface AstNode {
+  children?: AstNode[];
+  type: string;
+  value?: string;
+  url?: string;
+}
 
-const IMAGE_RX = /(\!\[[^\]]+\]\([^\)]+\))/g;
+const recursiveExtractText: (root: AstNode) => string = root => {
+  if (!root.children) return root.value ?? '';
 
-const extractTitle = (source: string, lineLength: number) => {
-  source = source.trim().replace(IMAGE_RX, '');
-  const line = source.trim().split('\n').shift()?.trim();
-
-  if (!line) return '';
-
-  const i = line.indexOf(' ', lineLength || 80);
-  const title = line.substring(0, ~i ? i : line.length);
-  if (title.length < line.length) return title + '...';
-  else return title;
+  return root.children
+    .map((child, idx) => recursiveExtractText(child))
+    .join('');
 };
 
-const extractSummary = (source: string, lineLength: number) => {
-  source = source.trim().replace(IMAGE_RX, '');
-  const title = extractTitle(source, lineLength);
+const recursiveFindBuilder = (type: string) => {
+  let imageNode: AstNode[] = [];
 
-  const lines = source
-    .trim()
-    .split('\n')
-    .map(function (e) {
-      return e.trim();
-    })
-    .filter(Boolean);
+  const recursiveFind = (root: AstNode) => {
+    if (!root.children) return imageNode;
 
-  //check if the elipsis was added... to the first paragraph.
-  if (/\.\.\.$/.test(title) && source.indexOf(title) != 0) {
-    const firstLine = lines[0].trim();
-    return '...' + firstLine.substring(title.length - 3).trim();
-  } else if (lines[1]) return lines[1];
-  else return '';
+    for (const child of root.children) {
+      if (child.type === type) imageNode.push(child);
+      else recursiveFind(child);
+    }
+    return imageNode;
+  };
+
+  return recursiveFind;
 };
 
-export { extractTitle, extractSummary };
+const removeUnusedImage = (
+  relativePath: string,
+  imageNodes: AstNode[] | undefined
+) => {
+  const fileNames = fs.readdirSync(relativePath);
+  const imagePaths = imageNodes
+    ? imageNodes.map(node => path.resolve(relativePath, node.url as string))
+    : [];
+
+  fileNames.map((name, idx) => {
+    const filePath = path.resolve('/', relativePath, name);
+    if (!imagePaths.some(imagePath => imagePath === filePath)) {
+      fs.rmSync(filePath);
+    }
+  });
+};
+
+const extractAndClear = (markdown: string) => {
+  const ast = unified().use(remarkParse).parse(markdown);
+
+  const titleNode = ast.children.find(child => child.type === 'heading');
+  const title = recursiveExtractText(titleNode as AstNode);
+
+  const summaryNode = ast.children.find(child => child.type === 'paragraph');
+  const summary = recursiveExtractText(summaryNode as AstNode);
+
+  const recursiveFind = recursiveFindBuilder('image');
+  const imageNodes = recursiveFind(ast);
+  const imgUrl = imageNodes[0]?.url ?? '';
+
+  return { title, summary, imgUrl, imageNodes };
+};
+
+export { extractAndClear, removeUnusedImage };

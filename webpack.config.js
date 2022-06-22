@@ -25,11 +25,29 @@ module.exports = (env, argv) => {
       __dirname: false, // if you don't put this is, __dirname
       __filename: false, // and __filename return blank or /
     },
-    externals: [nodeExternals()], // Need this to avoid error when working with Express
+    externals: [nodeExternals({
+      allowlist:[
+        'unified', 
+        'bail', 
+        'extend', 
+        'is-buffer',
+        'is-plain-obj',
+        'trough',
+        'vfile', 
+        'vfile-message', 
+        'unist-util-stringify-position', 
+        'remark-parse', 
+        'mdast-util-from-markdown', 
+        'mdast-util-to-string', 
+        /^micromark/,
+        'decode-named-character-reference',
+        'character-entities'
+      ]}
+    )], // Need this to avoid error when working with Express
     module: {
       rules: [
         {
-          test: /\.ts$/,
+          test: /\.(j|t)s$/,
           exclude: /node_modules/,
           use: {
             loader: 'babel-loader',
@@ -43,7 +61,7 @@ module.exports = (env, argv) => {
     plugins: [
       new NodemonPlugin(),
       new Dotenv({
-        path: process.env.NODE_ENV === 'production' ? '.prod.env' : '.dev.env',
+        path: process.env.NODE_ENV === 'production' ? 'prod.env' : 'dev.env',
       }),
     ],
   };
