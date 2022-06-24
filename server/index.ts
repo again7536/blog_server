@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
 const app = express();
-const port = 5000;
+const port = 8000;
 
 if (process.env.NODE_ENV === 'development') {
   app.use(

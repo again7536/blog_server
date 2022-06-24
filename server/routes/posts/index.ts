@@ -3,10 +3,8 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import idRoute from './post';
 import passport from 'lib/auth';
-import { extractAndClear, removeUnusedImage } from 'lib/extract';
+import { extractFromMarkdown, removeUnusedImage } from 'lib/extract';
 import { createDir } from 'lib/path-utils';
-import fs from 'fs';
-import path from 'path';
 
 const router = express.Router();
 router
@@ -20,7 +18,7 @@ router
       });
       // Get Highest Sequence from DB
       const id: [{ count: number }] = await db.all(
-        'SELECT COUNT(*) AS count FROM posts'
+        'SELECT COUNT(*) AS count FROM posts WHERE published=true'
       );
       const count = id[0]?.count ?? 0;
 
@@ -71,7 +69,7 @@ router
         }
         const { markdown, published } = req.body;
         const { title, summary, imgUrl, imageNodes } =
-          extractAndClear(markdown);
+          extractFromMarkdown(markdown);
 
         // Open DB
         const db = await open({

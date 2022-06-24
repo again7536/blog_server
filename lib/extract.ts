@@ -51,7 +51,7 @@ const removeUnusedImage = (
   });
 };
 
-const extractAndClear = (markdown: string) => {
+const extractFromMarkdown = (markdown: string) => {
   const ast = unified().use(remarkParse).parse(markdown);
 
   const titleNode = ast.children.find(child => child.type === 'heading');
@@ -67,4 +67,4 @@ const extractAndClear = (markdown: string) => {
   return { title, summary, imgUrl, imageNodes };
 };
 
-export { extractAndClear, removeUnusedImage };
+export { extractFromMarkdown, removeUnusedImage };
